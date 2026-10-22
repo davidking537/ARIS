@@ -1,0 +1,30 @@
+name: Build ARIS OS
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unpack upload
+        run: |
+          if [ -f ARIS-OS.zip ]; then unzip -oq ARIS-OS.zip && cp -r aris-os/. . ; fi
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+      - run: gradle assembleDebug
+      - name: Publish download link
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk ARIS-OS.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest ARIS-OS.apk --title "ARIS OS" --notes "Latest build"
